@@ -1,0 +1,155 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@font-face {
+  font-family: 'IRANSans';
+  src: url('/fonts/IRANSansWeb(FaNum).woff2') format('woff2'),
+       url('/fonts/IRANSansWeb(FaNum).woff') format('woff'),
+       url('/fonts/IRANSansWeb(FaNum).ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+body {
+  font-family: 'IRANSans', system-ui, -apple-system, sans-serif;
+}
+
+/* تبدیل نشانگر موس به دست برای تمام عناصر تعاملی */
+button,
+a,
+select,
+input[type="submit"],
+input[type="button"],
+input[type="checkbox"],
+input[type="radio"],
+[role="button"] {
+  cursor: pointer !important;
+}
+
+/* =========================================================
+   Dockview Dynamic Theme Text & Button Styles
+   ========================================================= */
+
+/* متغیرهای پایه Dockview */
+.dockview-theme-abyss-spaced {
+  --dv-color-abyss-dark: transparent !important;
+  --dv-color-abyss: transparent !important;
+  --dv-group-view-background-color: transparent !important;
+  --dv-tabs-and-actions-container-background-color: transparent !important;
+}
+
+.dockview-theme-light-spaced {
+  --dv-group-view-background-color: transparent !important;
+  --dv-tabs-and-actions-container-background-color: transparent !important;
+}
+
+/* 1. استایل کلی تب‌ها در تم تاریک */
+.dockview-theme-abyss-spaced .dv-tab {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  backdrop-filter: blur(12px) !important;
+  border-radius: 12px !important;
+  margin: 2px 3px !important;
+}
+
+.dockview-theme-abyss-spaced .dv-tab .dockview-tab-title {
+  color: #cbd5e1; /* slate-300 */
+}
+
+.dockview-theme-abyss-spaced .dv-tab .dockview-tab-close-btn {
+  color: #94a3b8; /* slate-400 */
+}
+
+.dockview-theme-abyss-spaced .dv-tab .dockview-tab-close-btn:hover {
+  color: #f87171; /* rose-400 */
+  background-color: rgba(239, 68, 68, 0.2);
+}
+
+/* تب فعال در تم تاریک */
+.dockview-theme-abyss-spaced .dv-tab-active {
+  background: rgba(245, 158, 11, 0.2) !important;
+  border-color: rgba(245, 158, 11, 0.5) !important;
+}
+
+.dockview-theme-abyss-spaced .dv-tab-active .dockview-tab-title {
+  color: #fbbf24 !important; /* amber-400 */
+  font-weight: 700;
+}
+
+
+/* 2. استایل کلی تب‌ها در تم روشن */
+.dockview-theme-light-spaced .dv-tab {
+  background: rgba(255, 255, 255, 0.35) !important;
+  border: 1px solid rgba(255, 255, 255, 0.6) !important;
+  backdrop-filter: blur(12px) !important;
+  border-radius: 12px !important;
+  margin: 2px 3px !important;
+}
+
+.dockview-theme-light-spaced .dv-tab .dockview-tab-title {
+  color: #1e293b !important; /* slate-800 - تیره و کاملاً خوانا در تم روشن */
+}
+
+.dockview-theme-light-spaced .dv-tab .dockview-tab-close-btn {
+  color: #475569 !important; /* slate-600 */
+}
+
+.dockview-theme-light-spaced .dv-tab .dockview-tab-close-btn:hover {
+  color: #dc2626 !important; /* rose-600 */
+  background-color: rgba(239, 68, 68, 0.15);
+}
+
+/* تب فعال در تم روشن */
+.dockview-theme-light-spaced .dv-tab-active {
+  background: rgba(245, 158, 11, 0.35) !important;
+  border-color: rgba(217, 119, 6, 0.6) !important;
+}
+
+.dockview-theme-light-spaced .dv-tab-active .dockview-tab-title {
+  color: #78350f !important; /* amber-900 */
+  font-weight: 800;
+}
+
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(245, 158, 11, 0.3); /* رنگ کهربایی ملایم */
+  border-radius: 9999px;
+  transition: background 0.3s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 158, 11, 0.6); /* پررنگ‌تر شدن هنگام هاور */
+}

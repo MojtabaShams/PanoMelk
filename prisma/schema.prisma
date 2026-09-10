@@ -1,0 +1,137 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model tb_conversations {
+  id             Int           @id @default(autoincrement())
+  user_id        Int
+  subject        String        @db.VarChar(255)
+  category       String        @db.VarChar(50)
+  category_label String        @db.VarChar(100)
+  status         String?       @default("active") @db.VarChar(20)
+  is_read        Boolean?      @default(false)
+  created_at     DateTime?     @default(now()) @db.Timestamp(6)
+  updated_at     DateTime?     @default(now()) @db.Timestamp(6)
+  tb_users       tb_users      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tb_messages    tb_messages[]
+
+  @@index([status], map: "idx_conversations_status")
+  @@index([user_id], map: "idx_conversations_user")
+}
+
+model tb_messages {
+  id               Int              @id @default(autoincrement())
+  conversation_id  Int
+  sender_type      String           @db.VarChar(20)
+  sender_name      String           @db.VarChar(100)
+  text             String
+  created_at       DateTime?        @default(now()) @db.Timestamp(6)
+  tb_conversations tb_conversations @relation(fields: [conversation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([conversation_id], map: "idx_messages_conversation")
+}
+
+model tb_plans {
+  id              Int               @id @default(autoincrement())
+  name            String            @db.VarChar(100)
+  slug            String            @unique @db.VarChar(50)
+  price_monthly   Decimal           @db.Decimal(12, 2)
+  price_yearly    Decimal           @db.Decimal(12, 2)
+  description     String?
+  is_active       Boolean?          @default(true)
+  created_at      DateTime?         @default(now()) @db.Timestamp(6)
+  tb_transactions tb_transactions[]
+}
+
+model tb_project_analytics {
+  id          Int         @id @default(autoincrement())
+  project_id  Int
+  client_site String?     @db.VarChar(255)
+  event_type  String      @db.VarChar(50)
+  ip_address  String?     @db.VarChar(45)
+  created_at  DateTime?   @default(now()) @db.Timestamp(6)
+  tb_projects tb_projects @relation(fields: [project_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([event_type], map: "idx_analytics_event")
+  @@index([project_id], map: "idx_analytics_project")
+}
+
+model tb_project_hotspots {
+  id             Int         @id @default(autoincrement())
+  project_id     Int
+  title          String      @db.VarChar(150)
+  coord_x        Decimal     @db.Decimal(5, 2)
+  coord_y        Decimal     @db.Decimal(5, 2)
+  pano_image_url String?     @db.VarChar(255)
+  audio_url      String?     @db.VarChar(255)
+  description    String?
+  created_at     DateTime?   @default(now()) @db.Timestamp(6)
+  tb_projects    tb_projects @relation(fields: [project_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([project_id], map: "idx_hotspots_project")
+}
+
+model tb_projects {
+  id                   Int                    @id @default(autoincrement())
+  user_id              Int
+  project_name         String                 @db.VarChar(255)
+  category             String                 @db.VarChar(50)
+  description          String?
+  map_image_url        String?                @db.VarChar(255)
+  created_at           DateTime?              @default(now()) @db.Timestamp(6)
+  updated_at           DateTime?              @default(now()) @db.Timestamp(6)
+  preview_link         String?                @db.VarChar(500)
+  iframe_code          String?
+  is_deleted           Boolean?               @default(false)
+  tb_project_analytics tb_project_analytics[]
+  tb_project_hotspots  tb_project_hotspots[]
+  tb_users             tb_users               @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([is_deleted], map: "idx_projects_deleted")
+  @@index([user_id], map: "idx_projects_user")
+}
+
+model tb_transactions {
+  id             Int       @id @default(autoincrement())
+  user_id        Int
+  plan_id        Int
+  invoice_number String    @unique @db.VarChar(50)
+  billing_cycle  String    @db.VarChar(20)
+  amount         Decimal   @db.Decimal(12, 2)
+  status         String    @db.VarChar(20)
+  gateway_ref_id String?   @db.VarChar(100)
+  created_at     DateTime? @default(now()) @db.Timestamp(6)
+  tb_plans       tb_plans  @relation(fields: [plan_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  tb_users       tb_users  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([status], map: "idx_transactions_status")
+  @@index([user_id], map: "idx_transactions_user")
+}
+
+model tb_users {
+  id               Int                @id @default(autoincrement())
+  full_name        String             @db.VarChar(100)
+  username         String             @unique @db.VarChar(50)
+  phone            String             @unique @db.VarChar(15)
+  email            String             @unique @db.VarChar(100)
+  password         String             @db.VarChar(255)
+  avatar_url       String?            @db.VarChar(255)
+  is_deleted       Boolean?           @default(false)
+  created_at       DateTime?          @default(now()) @db.Timestamp(6)
+  updated_at       DateTime?          @default(now()) @db.Timestamp(6)
+  confirm_rules    Boolean?           @default(false)
+  confirm_phone    Boolean?           @default(false)
+  confirm_email    Boolean?           @default(false)
+  tb_conversations tb_conversations[]
+  tb_projects      tb_projects[]
+  tb_transactions  tb_transactions[]
+
+  @@index([email], map: "idx_users_email")
+  @@index([phone], map: "idx_users_phone")
+  @@index([username], map: "idx_users_username")
+}
