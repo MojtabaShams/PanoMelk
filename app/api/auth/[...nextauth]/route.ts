@@ -6,6 +6,12 @@ import { Session, User } from "next-auth";
 import prisma from "@/lib/db"; // استفاده از نمونه استاندارد پریزما
 import bcrypt from "bcrypt";
 
+type AuthenticatedUser = User & {
+  confirm_phone?: boolean | null;
+  confirm_email?: boolean | null;
+  latest_plan?: string;
+};
+
 export const authOptions = {
   providers: [
     CredentialsProvider({
@@ -37,6 +43,8 @@ export const authOptions = {
           email: user.email,
           name: user.full_name,
           username: user.username,
+          confirm_phone: user.confirm_phone,
+          confirm_email: user.confirm_email,
         };
       },
     }),
@@ -49,34 +57,21 @@ export const authOptions = {
     signIn: "/login",
   },
   callbacks: {
-    async jwt({ token, user }: { token: JWT; user?: User | any }) {
+    async jwt({ token, user }: { token: JWT; user?: AuthenticatedUser }) {
       if (user) {
         token.id = user.id;
         token.username = user.username;
+        token.confirm_phone = user.confirm_phone;
+        token.confirm_email = user.confirm_email;
       }
       return token;
     },
     async session({ session, token }: { session: Session; token: JWT }) {
       if (session.user) {
-        (session.user as any).id = token.id;
-        (session.user as any).username = token.username;
-
-        const dbUser = await prisma.tb_users.findUnique({
-          where: { id: Number(token.id) },
-          include: { 
-            tb_transactions: { 
-              include: { tb_plans: true }, 
-              orderBy: { created_at: 'desc' }, 
-              take: 1 
-            } 
-          }
-        });
-
-        if (dbUser) {
-          (session.user as any).confirm_phone = dbUser.confirm_phone;
-          (session.user as any).confirm_email = dbUser.confirm_email;
-          (session.user as any).latest_plan = dbUser.tb_transactions[0]?.tb_plans?.name || "رایگان";
-        }
+        (session.user as AuthenticatedUser).id = token.id;
+        (session.user as AuthenticatedUser).username = token.username;
+        (session.user as AuthenticatedUser).confirm_phone = token.confirm_phone;
+        (session.user as AuthenticatedUser).confirm_email = token.confirm_email;
       }
       return session;
     },

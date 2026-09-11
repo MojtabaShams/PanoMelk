@@ -1,9 +1,7 @@
 // app/api/auth/register/route.ts
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import prisma from "@/lib/db";
 import bcrypt from "bcrypt";
-import { createVerificationToken, sendEmail, sendSms } from "@/lib/verification";
 
 export async function POST(req: Request) {
     try {
@@ -28,29 +26,21 @@ export async function POST(req: Request) {
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
-        const phoneCode = String(Math.floor(100000 + Math.random() * 900000));
-        const emailCode = String(Math.floor(100000 + Math.random() * 900000));
-        const token = createVerificationToken({
-            type: "registration",
-            full_name,
-            username,
-            phone,
-            email,
-            password: hashedPassword,
-            phoneCode,
-            emailCode,
-        });
-        await sendSms(phone, phoneCode);
-        await sendEmail(email, emailCode);
-        (await cookies()).set("registration_verification", token, {
-            httpOnly: true,
-            sameSite: "lax",
-            secure: process.env.NODE_ENV === "production",
-            maxAge: 120,
-            path: "/",
+        await prisma.tb_users.create({
+            data: {
+                full_name,
+                username,
+                phone,
+                email,
+                password: hashedPassword,
+                confirm_rules: true,
+                confirm_phone: true,
+                confirm_email: true,
+            },
         });
 
-        return NextResponse.json({ message: "کدهای تایید موبایل و ایمیل ارسال شدند." }, { status: 201 });
+        // ارسال پیامک و ایمیل تا زمان فعال‌سازی سرویس‌های مربوطه غیرفعال است.
+        return NextResponse.json({ message: "ثبت‌نام با موفقیت انجام شد." }, { status: 201 });
     } catch (error) {
         console.error(error);
         return NextResponse.json({ error: error instanceof Error ? error.message : "خطایی رخ داد." }, { status: 500 });

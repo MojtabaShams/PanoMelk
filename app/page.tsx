@@ -1,9 +1,9 @@
 // app/login/page.tsx
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
-import { Mail, Lock, Eye, EyeOff, ArrowLeft, ArrowRight, Sun, Moon, CheckCircle2, User, Phone, CircleUserRound, X } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, ArrowLeft, ArrowRight, Sun, Moon, User, Phone, CircleUserRound, X } from "lucide-react";
 import localFont from "next/font/local";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -20,7 +20,7 @@ const iranSans = localFont({
 const bgImageDark = "/back-dark.jpg";
 const bgImageLight = "/back-white.jpg";
 
-type AuthStep = "login" | "forgot" | "register" | "verify_phone" | "verify_email";
+type AuthStep = "login" | "register";
 
 export default function AuthPage() {
   const router = useRouter();
@@ -40,7 +40,6 @@ export default function AuthPage() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
 
@@ -52,14 +51,6 @@ export default function AuthPage() {
   const [registerEmailError, setRegisterEmailError] = useState("");
   const [termsError, setTermsError] = useState("");
 
-  const [code, setCode] = useState<string[]>(Array(6).fill(""));
-
-  // تایمر ۲ دقیقه (۱۲۰ ثانیه)
-  const [timer, setTimer] = useState(120);
-  const [canResend, setCanResend] = useState(false);
-
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-
   useEffect(() => {
     if (searchParams.get("expired") === "true") {
       toast("نشست شما منقضی شده است، لطفاً دوباره وارد شوید.", {
@@ -68,85 +59,6 @@ export default function AuthPage() {
       });
     }
   }, [searchParams]);
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if ((step === "forgot" || step === "verify_phone" || step === "verify_email") && timer > 0) {
-      interval = setInterval(() => {
-        setTimer((prev) => prev - 1);
-      }, 1000);
-    } else if (timer === 0) {
-      setCanResend(true);
-    }
-    return () => clearInterval(interval);
-  }, [step, timer]);
-
-  const startTimer = () => {
-    setTimer(120);
-    setCanResend(false);
-  };
-
-  const handleForgotPasswordClick = async () => {
-    if (!email.trim()) {
-      setEmailError("لطفاً ابتدا آدرس ایمیل خود را وارد کنید");
-      toast.error("لطفاً ابتدا آدرس ایمیل خود را وارد کنید", {
-        className: "bg-red-500 text-white font-bold text-xs rounded-xl",
-      });
-      return;
-    }
-    setEmailError("");
-    setIsLoading(true);
-    try {
-      const response = await fetch("/api/auth/forgot", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "ارسال کد بازیابی ناموفق بود.");
-      setStep("forgot");
-      startTimer();
-      toast.success("کد بازیابی رمز عبور ارسال شد.", { className: "bg-emerald-500 text-slate-950 font-bold text-xs rounded-xl" });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "خطا در ارسال کد بازیابی.", { className: "bg-red-500 text-white font-bold text-xs rounded-xl" });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleResendCode = async () => {
-    if (!canResend) return;
-    setIsLoading(true);
-    try {
-      const endpoint = step === "forgot" ? "/api/auth/forgot" : "/api/auth/register/resend";
-      const options: RequestInit = { method: "POST", headers: { "Content-Type": "application/json" } };
-      if (step === "forgot") options.body = JSON.stringify({ email });
-      const response = await fetch(endpoint, options);
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "ارسال مجدد کد ناموفق بود.");
-      setCode(Array(6).fill(""));
-      startTimer();
-      toast.success("کد تایید مجدداً ارسال گردید.", { className: "bg-emerald-500 text-slate-950 font-bold text-xs rounded-xl" });
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "خطا در ارسال مجدد کد.", { className: "bg-red-500 text-white font-bold text-xs rounded-xl" });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCodeChange = (index: number, value: string) => {
-    if (isNaN(Number(value))) return;
-    const newCode = [...code];
-    newCode[index] = value.slice(-1);
-    setCode(newCode);
-    if (value && index < 5) inputRefs.current[index + 1]?.focus();
-  };
-
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !code[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
 
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -259,13 +171,12 @@ export default function AuthPage() {
         return;
       }
 
-      toast.success("ثبت‌نام با موفقیت انجام شد و کد تایید ارسال گردید.", {
+      toast.success("ثبت‌نام با موفقیت انجام شد. اکنون می‌توانید وارد شوید.", {
         className: "bg-emerald-500 text-slate-950 font-bold text-xs rounded-xl",
       });
 
-      setCode(Array(6).fill(""));
-      setStep("verify_phone");
-      startTimer();
+      setPassword("");
+      setStep("login");
     } catch (err) {
       toast.error("خطا در ارتباط با سرور.", {
         className: "bg-red-500 text-white font-bold text-xs rounded-xl",
@@ -275,90 +186,10 @@ export default function AuthPage() {
     }
   };
 
-  const handleVerifyPhoneSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (code.join("").length === 6) {
-      setIsLoading(true);
-      const response = await fetch("/api/auth/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: code.join(""), stage: "phone" }),
-      });
-      const data = await response.json();
-      setIsLoading(false);
-      if (!response.ok) {
-        toast.error(data.error || "کد تایید نامعتبر است.", { className: "bg-red-500 text-white font-bold text-xs rounded-xl" });
-        return;
-      }
-      toast.success("شماره موبایل تایید شد.", {
-        className: "bg-emerald-500 text-slate-950 font-bold text-xs rounded-xl",
-      });
-      setCode(Array(6).fill(""));
-      setStep("verify_email");
-      startTimer();
-    }
-  };
-
-  const handleVerifyEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (code.join("").length === 6) {
-      setIsLoading(true);
-      const response = await fetch("/api/auth/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: code.join(""), stage: "email" }),
-      });
-      const data = await response.json();
-      setIsLoading(false);
-      if (!response.ok) {
-        toast.error(data.error || "کد تایید نامعتبر است.", { className: "bg-red-500 text-white font-bold text-xs rounded-xl" });
-        return;
-      }
-      toast.success("حساب کاربری شما با موفقیت فعال شد.", {
-        className: "bg-emerald-500 text-slate-950 font-bold text-xs rounded-xl",
-      });
-      router.push("/dashboard");
-    }
-  };
-
-  const handleForgotSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (code.join("").length !== 6 || newPassword.length < 8) {
-      toast.error("کد و رمز عبور جدید معتبر نیستند.", { className: "bg-red-500 text-white font-bold text-xs rounded-xl" });
-      return;
-    }
-    setIsLoading(true);
-    const response = await fetch("/api/auth/forgot", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, code: code.join(""), newPassword }),
-    });
-    const data = await response.json();
-    setIsLoading(false);
-    if (!response.ok) {
-      toast.error(data.error || "بازیابی رمز عبور ناموفق بود.", { className: "bg-red-500 text-white font-bold text-xs rounded-xl" });
-      return;
-    }
-    toast.success("رمز عبور با موفقیت تغییر کرد.", { className: "bg-emerald-500 text-slate-950 font-bold text-xs rounded-xl" });
-    setPassword("");
-    setNewPassword("");
-    setCode(Array(6).fill(""));
-    setStep("login");
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  };
-
   const getHeaderTitle = () => {
     switch (step) {
       case "login": return "خوش آمدید";
-      case "forgot": return "تایید کد امنیتی";
       case "register": return "ایجاد حساب کاربری";
-      case "verify_phone": return "تایید شماره همراه";
-      case "verify_email": return "تایید آدرس ایمیل";
     }
   };
 
@@ -395,11 +226,7 @@ export default function AuthPage() {
             {step !== "login" && (
               <button
                 type="button"
-                onClick={() => {
-                  if (step === "verify_email") setStep("verify_phone");
-                  else if (step === "verify_phone") setStep("register");
-                  else setStep("login");
-                }}
+                onClick={() => setStep("login")}
                 className={`absolute top-0 left-0 p-1.5 rounded-full transition-colors cursor-pointer ${isDark ? "text-slate-300 hover:text-amber-400 hover:bg-white/10" : "text-slate-800 hover:text-amber-600 hover:bg-white/40"}`}
               >
                 <ArrowLeft className="w-5 h-5" />
@@ -461,12 +288,6 @@ export default function AuthPage() {
                   </button>
                 </div>
                 {passwordError && <span className="text-[10px] font-bold text-red-500 mt-1 pr-1">{passwordError}</span>}
-              </div>
-
-              <div className="flex justify-end pr-1">
-                <button type="button" onClick={handleForgotPasswordClick} className={`text-[11px] font-bold cursor-pointer ${isDark ? "text-amber-500 hover:text-amber-400" : "text-amber-600 hover:text-amber-700"}`}>
-                  رمز عبور را فراموش کرده‌اید؟
-                </button>
               </div>
 
               <button type="submit" disabled={isLoading} className="w-full bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 text-slate-950 font-bold py-2 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md hover:shadow-amber-500/20 transition-all text-xs cursor-pointer disabled:opacity-60 disabled:cursor-wait">
@@ -581,75 +402,9 @@ export default function AuthPage() {
               </div>
 
               <button type="submit" disabled={isLoading} className="w-full bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 text-slate-950 font-bold py-2 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md hover:shadow-amber-500/20 transition-all text-xs cursor-pointer mt-1 disabled:opacity-60 disabled:cursor-wait">
-                <span>{isLoading ? "لطفاً شکیبا باشید..." : "ادامه و دریافت کد تایید"}</span>
+                <span>{isLoading ? "لطفاً شکیبا باشید..." : "ثبت‌نام"}</span>
                 <ArrowRight className="w-4 h-4 rotate-180" />
               </button>
-            </form>
-          )}
-
-          {/* مراحل تایید کد ۶ رقمی */}
-          {(step === "forgot" || step === "verify_phone" || step === "verify_email") && (
-            <form onSubmit={step === "forgot" ? handleForgotSubmit : step === "verify_phone" ? handleVerifyPhoneSubmit : handleVerifyEmailSubmit} className="space-y-4 flex-grow flex flex-col justify-center my-2">
-              <div className="text-center space-y-1">
-                <p className={`text-xs ${isDark ? "text-slate-300" : "text-slate-900 font-bold"}`}>
-                  {step === "forgot" ? "کد بازیابی به شماره همراه شما ارسال شد:" : step === "verify_phone" ? "کد تایید به شماره همراه زیر ارسال شد:" : "کد ۶ رقمی به ایمیل زیر ارسال شد:"}
-                </p>
-                <p className="text-xs font-bold text-amber-500 dir-ltr">
-                  {step === "forgot" ? email : step === "verify_phone" ? phone : email}
-                </p>
-              </div>
-
-              {step === "forgot" && (
-                <div className="flex flex-col">
-                  <label className={`text-xs font-bold mb-1 pr-1 ${isDark ? "text-slate-300" : "text-slate-900"}`}>رمز عبور جدید</label>
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="حداقل ۸ کاراکتر"
-                    className={`w-full border rounded-xl py-2 px-3 text-xs focus:outline-none focus:border-amber-500 ${isDark ? "bg-white/5 border-white/10 text-slate-100" : "bg-white/50 border-white/60 text-slate-950"}`}
-                  />
-                </div>
-              )}
-
-              <div className="flex justify-between items-center gap-1.5 my-2" dir="ltr">
-                {code.map((digit, index) => (
-                  <input
-                    key={index}
-                    ref={(el) => { inputRefs.current[index] = el; }}
-                    type="text"
-                    maxLength={1}
-                    value={digit}
-                    onChange={(e) => handleCodeChange(index, e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(index, e)}
-                    className={`w-10 h-11 text-center font-bold text-lg rounded-xl border transition-all focus:outline-none focus:border-amber-500 ${isDark ? "bg-white/5 border-white/10 text-white" : "bg-white/60 border-white/80 text-slate-950"}`}
-                  />
-                ))}
-              </div>
-
-              <button
-                type="submit"
-                disabled={code.join("").length < 6 || isLoading}
-                className={`w-full font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all text-xs ${code.join("").length === 6
-                  ? "bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 text-slate-950 shadow-md cursor-pointer"
-                  : "bg-gray-500/30 text-gray-400 cursor-not-allowed"
-                  }`}
-              >
-                <span>{isLoading ? "لطفاً شکیبا باشید..." : step === "forgot" ? "تغییر رمز عبور" : step === "verify_phone" ? "تایید موبایل و مرحله بعد" : "تایید و تکمیل ثبت‌نام"}</span>
-                <CheckCircle2 className="w-4 h-4" />
-              </button>
-
-              <div className="flex items-center justify-center text-xs pt-1">
-                {canResend ? (
-                  <button type="button" onClick={handleResendCode} className={`font-bold cursor-pointer ${isDark ? "text-amber-500 hover:text-amber-400" : "text-amber-600 hover:text-amber-700"}`}>
-                    ارسال مجدد کد
-                  </button>
-                ) : (
-                  <span className={`font-medium dir-ltr ${isDark ? "text-slate-400" : "text-slate-800"}`}>
-                    ارسال مجدد کد تا <span className="font-bold text-amber-500">{formatTime(timer)}</span> دیگر
-                  </span>
-                )}
-              </div>
             </form>
           )}
 
