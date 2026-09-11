@@ -89,6 +89,7 @@ useEffect(() => {
   let inactivityTimer: NodeJS.Timeout;
   let sessionCheckTimer: NodeJS.Timeout;
   let lastSessionCheck = 0;
+  const sessionCheckInterval = 10000;
 
   const resetInactivityTimer = async () => {
     clearTimeout(inactivityTimer);
@@ -97,13 +98,13 @@ useEffect(() => {
       window.location.href = "/login?expired=true";
     }, 10 * 60 * 1000); // 10 دقیقه
 
-    if (Date.now() - lastSessionCheck > 30000) {
+    if (Date.now() - lastSessionCheck > sessionCheckInterval) {
       lastSessionCheck = Date.now();
       try {
         const response = await fetch("/api/auth/session", { cache: "no-store" });
         const session = await response.json();
         if (!session?.user) {
-          window.location.href = "/login?expired=true";
+          window.location.replace("/login?expired=true");
         }
       } catch {
         // A temporary network failure should not log the user out.
@@ -117,9 +118,11 @@ useEffect(() => {
   window.addEventListener("scroll", resetInactivityTimer);
 
   resetInactivityTimer();
+  // Check often enough to redirect shortly after the JWT expires, without
+  // issuing a request for every user interaction.
   sessionCheckTimer = setInterval(() => {
     void resetInactivityTimer();
-  }, 30000);
+  }, sessionCheckInterval);
 
   return () => {
     clearTimeout(inactivityTimer);
